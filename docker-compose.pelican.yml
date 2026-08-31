@@ -1,0 +1,128 @@
+# Pelican/Pterodactyl compatible docker-compose
+# Usage in Pelican: Applications → Create Application → Docker Compose → Paste this
+# Or: pelican-compose -f docker-compose.pelican.yml up -d
+
+version: '3.8'
+
+services:
+  # ──────────────────────────────────────────────────────────────────
+  # LEADFLOW - Single container with nginx + frontend + backend + celery
+  # ──────────────────────────────────────────────────────────────────
+  leadflow:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-username}/leadflow:latest
+    container_name: leadflow
+    restart: unless-stopped
+    
+    # Pelican maps host port 8080 → container port 8080 automatically
+    # Expose only internal ports (Pelican handles external)
+    expose:
+      - "8080"
+    
+    # Resource limits (adjust for your VPS)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    
+    # Healthcheck for Pelican monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Environment variables (set in Pelican UI → Environment Variables)
+    environment:
+      # ─── REQUIRED ───
+      - DATABASE_URL=${DATABASE_URL}                    # postgresql+asyncpg://user:pass@host:5432/db
+      - SECRET_KEY=${SECRET_KEY}                        # 32+ chars: openssl rand -hex 32
+      
+      # ─── OPTIONAL - AI ───
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      
+      # ─── OPTIONAL - DISCORD ───
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID:-}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET:-}
+      - DISCORD_REDIRECT_URI=${DISCORD_REDIRECT_URI:-https://your-domain.com/auth/discord/callback}
+      
+      # ─── OPTIONAL - NOTIFICATIONS ───
+      - GOTIFY_URL=${GOTIFY_URL:-}
+      - GOTIFY_TOKEN=${GOTIFY_TOKEN:-}
+      
+      # ─── OPTIONAL - SCRAPING ───
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT:-LeadFlow/1.0}
+      
+      # ─── ADMIN ───
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH:-}    # auto-generated on first run
+      
+      # ─── FRONTEND ───
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://your-domain.com}
+      - FRONTEND_URL=${FRONTEND_URL:-https://your-domain.com}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://your-domain.com}
+      
+      # ─── REDIS (for Celery) ───
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      
+      # ─── INTERNAL ───
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=production
+
+    # Volumes for persistence (Pelican creates these automatically)
+    volumes:
+      - leadflow_data:/app/backend/data
+      - leadflow_uploads:/app/backend/uploads
+      - leadflow_logs:/var/log/supervisor
+      - celery_beat_data:/app/backend/celerybeat-schedule
+
+    # Pelican handles networking - no ports section needed
+    # If you need external DB/Redis, use host.docker.internal or Pelican's internal DNS
+
+  # ──────────────────────────────────────────────────────────────────
+  # REDIS (for Celery) - Optional, can use external
+  # ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: leadflow-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+# ──────────────────────────────────────────────────────────────────
+# VOLUMES (Pelican manages these)
+# ──────────────────────────────────────────────────────────────────
+volumes:
+  leadflow_data:
+  leadflow_uploads:
+  leadflow_logs:
+  celery_beat_data:
+  redis_data:
+
+# ──────────────────────────────────────────────────────────────────
+# NETWORKS
+# ──────────────────────────────────────────────────────────────────
+networks:
+  default:
+    name: leadflow-network

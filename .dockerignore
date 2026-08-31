@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Node
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/build
+frontend/*.log
+frontend/.turbo
+
+# Python
+backend/__pycache__
+backend/*.pyc
+backend/.pytest_cache
+backend/.coverage
+backend/htmlcov
+backend/venv
+backend/.venv
+backend/*.db
+backend/*.sqlite
+backend/leadflow.db
+backend/celerybeat-schedule
+backend/celerybeat.pid
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+.coverage
+htmlcov/
+
+# Misc
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
