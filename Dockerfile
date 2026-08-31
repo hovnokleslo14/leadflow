@@ -5,7 +5,7 @@
 ################################################################################
 # 1️⃣ FRONTEND BUILDER
 ################################################################################
-FROM node:20-alpine AS frontend-builder
+FROM node:26-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 # Install deps first (better cache)
