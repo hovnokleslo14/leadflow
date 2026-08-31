@@ -21,7 +21,7 @@ RUN npm run build
 ################################################################################
 # 2️⃣ BACKEND DEPS
 ################################################################################
-FROM python:3.11-slim AS backend-deps
+FROM python:3.14-slim AS backend-deps
 WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ################################################################################
 # 3️⃣ FINAL RUNTIME IMAGE
 ################################################################################
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # System deps: nginx + supervisor + curl (healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
